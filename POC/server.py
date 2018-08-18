@@ -23,8 +23,6 @@ from keras.applications import vgg16, inception_v3, resnet50, mobilenet
 from keras.preprocessing.image import load_img
 from keras.preprocessing.image import img_to_array
 
-
-
 #secure_filename
 from werkzeug.utils import secure_filename
 
@@ -80,6 +78,11 @@ def modelo_predecir(img_path, model):
     return preds
 @app.route('/predictor', methods=['POST'])
 def predictor():
+    """Descripcion de la funcion predictor()
+    Se encarga de devolver recibir una imagen mediante un request POST
+    La procesa, la envia al modelo y retorna la clase que el modelo le asigno a la imagen 
+    Esta respuesta se devuelve como un parametro de la respuesta a la peticion POST
+    """
     if request.method == 'POST':
         # Get the file from post request
         f = request.files['file']
@@ -132,31 +135,6 @@ def generar():
     Se llama desde la aplicacion web cuando se accede a /generar
     """
     return render_template("generar.html") 
-@app.route("/crear2")
-def crear2():
-    """Descripcion de la funcion crear()
-    Se encarga de crear un archivo .csv y retornarlo
-    Se llama mediante una peticion GET desde la pagina /generar
-    """
-    raw_data = {'first_name': ['Jason', 'Molly', 'Tina', 'Jake', 'Amy'], 
-        'last_name': ['Miller', 'Jacobson', 'Ali', 'Milner', 'Cooze'], 
-        'age': [42, 52, 36, 24, 73], 
-        'preTestScore': [4, 24, 31, 2, 3],
-        'postTestScore': [25, 94, 57, 62, 70]}
-    df = pd.DataFrame(raw_data, columns = ['first_name', 'last_name', 'age', 'preTestScore', 'postTestScore'])
-    basepath = os.path.dirname(__file__)
-    ts = time.time()
-    st = str(datetime.datetime.fromtimestamp(ts).strftime('-%Y-%m-%d-%H-%M-%S'))
-    nombre = "file"+st + ".csv"
-    file_path = os.path.join(
-            basepath, 'files', nombre)
-    df.to_csv(file_path)
-    nombre="files\\"+nombre
-    print(42)
-    print(nombre)
-    #print(file_path)
-    
-    return "hello"#send_from_directory(nombre, as_attachment=True)
 @app.route("/crear", methods = ['GET'])
 def crear():
     """Descripcion de la funcion crear()
