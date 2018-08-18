@@ -1,0 +1,40 @@
+{% extends "template.html" %}
+
+{% block content %}
+<div ng-controller="myCtrl">
+<h3>Cargar una imagen y predecir la clase</h3>
+<form  enctype="multipart/form-data"">
+  <div class="form-group">
+    <label for="usr">Agregar imagen:</label>
+    <input type='file' class="form-control" name='file' onchange="angular.element(this).scope().uploadFile(this.files)">
+    <input type="submit" ng-click="submitGuideDetailsForm()" value="Enviar" />
+  </div>
+</form>
+</div>
+
+<script>
+var testApp = angular.module('app', []);
+
+testApp.controller('myCtrl' , function ($scope, $http) {
+    $scope.home = "This is the homepage";
+    
+    $scope.uploadFile = function(files) {
+        $scope.file = new FormData();
+        $scope.file.append("file", files[0]);
+    };
+	$scope.submitGuideDetailsForm= function() {
+	 $http.post('/predictor', $scope.file, {
+	       headers: {'Content-Type': undefined },
+	       transformRequest: angular.identity
+	      }).then(function successCallback(response){
+              //$scope.response = response;
+              alert(response.data);
+          }, function errorCallback(response){
+        	  alert("error");
+              console.log("Unable to perform get request");
+          });
+	   };
+    
+});
+</script>
+{% endblock %}

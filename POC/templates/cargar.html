@@ -1,0 +1,15 @@
+{% extends "template.html" %}
+
+{% block content %}
+
+<h1 id="titulo">Segmentador de celulas</h1>
+<div id="center">
+	<h3>Cargar una imagen</h3>
+	<form action = "{{ url_for('cargador') }}" method = "POST" 
+	enctype = "multipart/form-data">
+		<input type = "file" name = "file" accept=".png, .jpg, .jpeg"/>
+		<input type = "submit" value="Cargar imagen"/>
+	</form>
+</div>
+		
+{% endblock %}

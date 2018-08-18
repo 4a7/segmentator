@@ -1,0 +1,53 @@
+{% extends "template.html" %}
+
+{% block content %}
+
+<h1 id="titulo">Segmentador de celulas</h1>
+
+	<h3>Generar y descargar un archivo .csv</h3>
+	
+<div ng-controller="myCtrl" style="text-align:center">
+  <button ng-click="getRequest()">Generar archivo (no funciona)</button>
+  <p><a href="{{ url_for('crear') }}">Generar archivo</a></p>
+  <h2>Resultado: {a count a}</h2>
+</div>
+
+
+<script>
+var testApp = angular.module('app', []);
+
+testApp.controller('myCtrl' , function ($scope, $http) {
+    $scope.home = "This is the homepage";
+    
+    $scope.getRequest = function () {
+        console.log("Peticion de archivo realizada");  
+        $http.get("{{ url_for('crear') }}")
+            .then(function successCallback(response){
+                //$scope.response = response;
+                alert(response.data);
+            }, function errorCallback(response){
+                console.log("Unable to perform get request");
+            });
+    };
+    
+});
+</script>
+<!-- 
+<script>
+var app = angular.module('myApp', []);
+app.controller('myCtrl', function($scope, $http) {
+	$scope.calculateQuantity = function() {
+		  $http({
+		    method : "GET",
+		    url : "crear"
+		  }).then(function mySuccess(response) {
+		      $scope.resul = "exito";
+		    }, function myError(response) {
+		      $scope.resul = "error";
+		  });
+	  };
+});
+</script>
+-->
+		
+{% endblock %}
