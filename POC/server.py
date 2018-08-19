@@ -76,6 +76,15 @@ def modelo_predecir(img_path, model):
 
     preds = model.predict(x)
     return preds
+def modelo_predecir_unitario(img_path,model):
+    """Descripcion de la funcion modelo_predecir_unitario()
+    Una funcion auxiliar que simula lo que retorna la funcion predictor
+    """
+    preds=modelo_predecir(img_path,model)
+    pred_class = decode_predictions(preds, top=1)
+    result = str(pred_class[0][0][1])
+    return result
+    
 @app.route('/predictor', methods=['POST'])
 def predictor():
     """Descripcion de la funcion predictor()
