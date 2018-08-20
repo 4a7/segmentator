@@ -1,3 +1,3 @@
 # Herramienta para realizar segmentacion y etiquetado de celulas
-POC: Prueba de concepto de la aplicaccion
+POC: Contiene la prueba de concepto de la aplicaccion  
 (en desarrollo)
