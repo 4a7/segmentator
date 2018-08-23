@@ -6,12 +6,11 @@
 
 	<h3>Generar y descargar un archivo .csv</h3>
 	
-<div ng-controller="myCtrl">
-  <!-- <button ng-click="getRequest()">Generar archivo (obtiene respuesta en alert())</button> -->
-  <p><a href="{{ url_for('crear') }}">Generar y descargar archivo</a></p>
-  <!-- <h2>Resultado: {a count a}</h2> -->
+<div ng-controller="myCtrl" style="text-align:center">
+  <button ng-click="getRequest()">Generar archivo (no funciona)</button>
+  <p><a href="{{ url_for('crear') }}">Generar archivo</a></p>
+  <h2>Resultado: {a count a}</h2>
 </div>
-
 
 
 <script>
@@ -22,7 +21,7 @@ testApp.controller('myCtrl' , function ($scope, $http) {
     
     $scope.getRequest = function () {
         console.log("Peticion de archivo realizada");  
-        $http.get("{{ url_for('crear') }}")
+        $http.get("getRequest()")
             .then(function successCallback(response){
                 //$scope.response = response;
                 alert(response.data);
