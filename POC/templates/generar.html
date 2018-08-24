@@ -21,8 +21,7 @@ testApp.controller('myCtrl' , function ($scope, $http) {
     $scope.home = "This is the homepage";
     
     $scope.getRequest = function () {
-        console.log("Peticion de archivo realizada");  
-	$http.get("{{ url_for('crear') }}")    
+        console.log("Peticion de archivo realizada");
         $http.get("getRequest()")
             .then(function successCallback(response){
                 //$scope.response = response;
