@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta name="title" content="Segmentador de celulas">
+	<meta charset="utf-8">
+	<title>Segmentador de celulas</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js">
+	<script type="text/javascript">
+		var app = angular.module('app', []);
+
+		app.config(['$interpolateProvider', function($interpolateProvider) {
+		  $interpolateProvider.startSymbol('{a');
+		  $interpolateProvider.endSymbol('a}');
+		}]);
+	</script> 
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet"> 
+	<link href="{{ url_for('static',filename='styles/estilo.css') }}" rel="stylesheet" type="text/css">
+	{{ dropzone.load() }}
+    {{ dropzone.style('border: 2px dashed #0087F7; margin: 10%; min-height: 400px;') }}
+</head>
+
+<body ng-app="app">
+	<h1 id="titulo">Segmentador de celulas</h1>
+	<div id="center">
+		<h3>Cargar imagenes</h3>
+		{{ dropzone.create(action_view='cargador') }}
+		
+		
+		<form method="POST" enctype="multipart/form-data" action="/upload">
+		  <input type="file" name="file[]" multiple="">
+		  <input type="submit" value="add">
+		</form>
+		
+		
+		
+	</div>
+</body>
+</html> 
+
