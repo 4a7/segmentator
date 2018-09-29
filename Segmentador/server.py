@@ -3,21 +3,27 @@ import datetime
 import sys
 import os
 
-from pathlib import Path
+import hashlib
 import flask
+import matplotlib.pyplot as plt
+import numpy as np
 from flask import Flask, render_template, request, send_from_directory, Response, session, url_for, redirect
 from flask_dropzone import Dropzone
 from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
+from flask_sqlalchemy import SQLAlchemy
 from PIL import Image
-import matplotlib.pyplot as plt
-import numpy as np
+from pathlib import Path
 from werkzeug.utils import secure_filename
 
+from modelos import *
+from unet_CellSegmentation import *
 
 
 DOWNLOAD_DIRECTORY="files"
 app = Flask(__name__)
 dropzone = Dropzone(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://calidad:ss@localhost:3306/calidad_v1'
+db = SQLAlchemy(app)
 
 #Se configura dropzone
 app.config['DROPZONE_UPLOAD_MULTIPLE'] = True
@@ -30,19 +36,98 @@ app.config['UPLOADED_PHOTOS_DEST'] = os.getcwd() + '/uploads'
 
 #se configura la clave del api
 app.config['SECRET_KEY'] = 'aire'
+#app.secret_key = '22522837b0046ad6edf60333001ca426'
 
 photos = UploadSet('photos', IMAGES)
 configure_uploads(app, photos)
 patch_request_class(app)
 
+
+
+@app.route("/index")
+@app.route("/")
+def index():
+    """
+    Se encarga de devolver la pagina index.html renderizada
+    Esta pagina permite que las personas ingresen al sistema
+    """
+    #DEBUG: quitar estas lineas
+    #session.pop('usuario', None)
+    #session.pop('id_usuario', None)
+    #ession.pop('id_sesion', None)
+    if 'usuario' in session:
+        return render_template("index.html")
+    return render_template("login.html")
+
+@app.route("/i")
+def i():
+    session.pop('usuario', None)
+    session.pop('id_usuario', None)
+    session.pop('id_sesion', None)
+    return render_template("login.html")
+
+
+@app.route('/login', methods = ['GET', 'POST'])
+def login():
+    """
+    Se encarga de validar al usuario
+    Se llama mediante una peticion POST que envia el usuario y la contrasena
+    """
+    if request.method == 'POST':
+        usuario = request.form['usuario']
+        contrasena = request.form['contrasena']
+        contrasena = hashlib.md5(contrasena.encode('utf-8')).hexdigest()
+        data = Usuario.query.filter_by(correo=usuario, passwd=contrasena).first()
+        if data is not None:    #login correcto
+            nueva_sesion = Sesion()
+            nueva_sesion.id_usuario = data.id_usuario
+            db.session.add(nueva_sesion)
+            db.session.commit()
+            session['usuario'] = data.correo
+            session['id_usuario'] = data.id_usuario
+            session['id_sesion'] = nueva_sesion.id_sesion
+            session['prefijo'] = 'sesion_'+str(nueva_sesion.id_sesion)
+            print(session['prefijo'])
+            return redirect(url_for('index'))
+        else:
+            session.pop('usuario', None)
+            session.pop('id_usuario', None)
+            session.pop('id_sesion', None)
+            return render_template('login.html')
+    else:
+        return render_template("login.html")
+
+@app.route('/visualizar')
+def visualizar():
+    """
+    Muestra las imagenes cargadas en la sesion actual
+    """
+    id_sesion = session['id_sesion']
+    file_urls = db.session.query(Archivo).join(SesionEntrada, SesionEntrada.id_archivo==Archivo.id_archivo).filter(SesionEntrada.id_sesion==id_sesion).all()
+    print(file_urls)
+    return render_template('visualizar.html', file_urls=file_urls)
+
+@app.route('/segmentar')
+def segmentar():
+    """Se encarga de segmentar las imagenes
+    """    
+    predict_web(session['dir_imagenes'], session['dir_imagenes_salida'], session['prefijo']+"_salida/")
+    return render_template('segmentar.html')
+@app.route('/segmentadas')
+def segmentadas():
+    """
+    Muestra las imagenes ya segmentadas
+    """
+    id_sesion = session['id_sesion']
+    file_urls = db.session.query(Archivo).join(SesionSalida, SesionSalida.id_archivo==Archivo.id_archivo).filter(SesionSalida.id_sesion==id_sesion).all()
+    print(file_urls)
+    return render_template('visualizar.html', file_urls=file_urls)
+
 @app.route('/exito')
 def exito():
-    if "file_urls" not in session or session['file_urls'] == []:
-        return redirect(url_for('index'))
-        
-    file_urls = session['file_urls']
-    session.pop('file_urls', None)
-    return render_template('exito.html', file_urls=file_urls)
+    """Muestra un mensaje de exito cuando las imagenes se cargaron correctamente
+    """
+    return render_template('exito.html')
 
 @app.route('/upload', methods = ['GET', 'POST'])
 def upload():
@@ -76,15 +161,7 @@ def upload():
         session['file_urls'] = file_urls        
         return render_template("exito.html", file_urls=file_urls)
 
-@app.route("/index")
-@app.route("/")
-def index():
-    """
-    Se encarga de devolver la pagina index.html renderizada
-    Esta pagina tiene los links a los distintos elementos de la aplicacion
-    Se llama desde la aplicacion web cuando se accede a /index o a /
-    """
-    return render_template("index.html")
+
 
 @app.route("/cargar")
 def cargar():
@@ -108,19 +185,33 @@ def cargador():
     #file_urls=[]
     if request.method == 'POST':
         file_obj = request.files
-        print(file_obj)
         for f in file_obj:
             file = request.files.get(f)
             ts = time.time()
-            st = str(datetime.datetime.fromtimestamp(ts).strftime('-%Y-%m-%d-%H-%M-%S'))
+            #DEBUG: ponerle un timestamp a las fotos
+            #st = str(datetime.datetime.fromtimestamp(ts).strftime('-%Y-%m-%d-%H-%M-%S'))
             nombre = secure_filename(file.filename)
             nombre, extension = os.path.splitext(nombre)
-            nombre = nombre + st + extension
+            nombre2 = os.getcwd() + '/uploads/' + session['prefijo'] +"/"+ nombre + extension
+            session['dir_imagenes'] = os.getcwd() + '/uploads/' + session['prefijo']+"/"    #se usara para la clasificacion
+            session['dir_imagenes_salida'] = os.getcwd()+'/uploads/'+session['prefijo']+"_salida/"    #se usara para almacenar los resutlados
+            print(session['dir_imagenes_salida'])
             filename = photos.save(
                 file,
-                name = nombre    
+                name = nombre2  
             )
+            filename = session['prefijo']+"/" + nombre + extension  #se obtiene el nombre para el url
             file_urls.append(photos.url(filename))
+            nuevo_archivo = Archivo(nombre+extension, photos.url(filename))
+            #nuevo_archivo.nombre = nombre+extension
+            #nuevo_archivo.url = photos.url(filename)
+            db.session.add(nuevo_archivo)
+            db.session.commit()
+            en_la_sesion = SesionEntrada()
+            en_la_sesion.id_sesion = session['id_sesion']
+            en_la_sesion.id_archivo = nuevo_archivo.id_archivo
+            db.session.add(en_la_sesion)
+            db.session.commit()
         session['file_urls'] = file_urls        
         return "uploading..."
 
