@@ -18,6 +18,12 @@ from werkzeug.utils import secure_filename
 from modelos import *
 from unet_CellSegmentation import *
 
+"""
+TODO
+*Mejorar la forma en la que se llama la segmentacion
+*Crear las tablas para resultados y mejorar la forma en la que se relacionan
+*Guardar el arreglo que se genera tras cada segmentacion en la carpeta de resultados de la sesion
+"""
 
 DOWNLOAD_DIRECTORY="files"
 app = Flask(__name__)
