@@ -15,15 +15,9 @@ from PIL import Image
 from pathlib import Path
 from werkzeug.utils import secure_filename
 
-from modelos import *
 from unet_CellSegmentation import *
 
-"""
-TODO
-*Mejorar la forma en la que se llama la segmentacion
-*Crear las tablas para resultados y mejorar la forma en la que se relacionan
-*Guardar el arreglo que se genera tras cada segmentacion en la carpeta de resultados de la sesion
-"""
+
 
 DOWNLOAD_DIRECTORY="files"
 app = Flask(__name__)
@@ -83,9 +77,10 @@ def login():
         usuario = request.form['usuario']
         contrasena = request.form['contrasena']
         contrasena = hashlib.md5(contrasena.encode('utf-8')).hexdigest()
-        data = Usuario.query.filter_by(correo=usuario, passwd=contrasena).first()
+        data = db.session.query(modelos.Usuario).filter_by(correo=usuario, passwd=contrasena).first()
+        #data = modelos.Usuario.query.filter_by(correo=usuario, passwd=contrasena).first()
         if data is not None:    #login correcto
-            nueva_sesion = Sesion()
+            nueva_sesion = modelos.Sesion()
             nueva_sesion.id_usuario = data.id_usuario
             db.session.add(nueva_sesion)
             db.session.commit()
@@ -109,7 +104,7 @@ def visualizar():
     Muestra las imagenes cargadas en la sesion actual
     """
     id_sesion = session['id_sesion']
-    file_urls = db.session.query(Archivo).join(SesionEntrada, SesionEntrada.id_archivo==Archivo.id_archivo).filter(SesionEntrada.id_sesion==id_sesion).all()
+    file_urls = db.session.query(modelos.Archivo).join(modelos.SesionEntrada, modelos.SesionEntrada.id_archivo==modelos.Archivo.id_archivo).filter(modelos.SesionEntrada.id_sesion==id_sesion).all()
     print(file_urls)
     return render_template('visualizar.html', file_urls=file_urls)
 
@@ -118,6 +113,7 @@ def segmentar():
     """Se encarga de segmentar las imagenes
     """    
     predict_web(session['dir_imagenes'], session['dir_imagenes_salida'], session['prefijo']+"_salida/")
+    print(session['dir_imagenes'])
     return render_template('segmentar.html')
 
 @app.route('/segmentar2')
@@ -133,10 +129,13 @@ def segmentadas():
     """
     Muestra las imagenes ya segmentadas
     """
-    id_sesion = session['id_sesion']
-    file_urls = db.session.query(Archivo).join(SesionSalida, SesionSalida.id_archivo==Archivo.id_archivo).filter(SesionSalida.id_sesion==id_sesion).all()
-    print(file_urls)
-    return render_template('visualizar.html', file_urls=file_urls)
+    if "id_sesion" in session:
+        id_sesion = session['id_sesion']
+        file_urls = db.session.query(modelos.Archivo).join(modelos.SesionSalida, modelos.SesionSalida.id_archivo==modelos.Archivo.id_archivo).filter(modelos.SesionSalida.id_sesion==id_sesion).all()
+        print(file_urls)
+        return render_template('visualizar.html', file_urls=file_urls)
+    else:   #en las pruebas, oara ver que funcione
+        return render_template('index.html')
 
 @app.route('/exito')
 def exito():
@@ -217,12 +216,12 @@ def cargador():
             )
             filename = session['prefijo']+"/" + nombre + extension  #se obtiene el nombre para el url
             file_urls.append(photos.url(filename))
-            nuevo_archivo = Archivo(nombre+extension, photos.url(filename))
+            nuevo_archivo = modelos.Archivo(nombre+extension, photos.url(filename))
             #nuevo_archivo.nombre = nombre+extension
             #nuevo_archivo.url = photos.url(filename)
             db.session.add(nuevo_archivo)
             db.session.commit()
-            en_la_sesion = SesionEntrada()
+            en_la_sesion = modelos.SesionEntrada()
             en_la_sesion.id_sesion = session['id_sesion']
             en_la_sesion.id_archivo = nuevo_archivo.id_archivo
             db.session.add(en_la_sesion)

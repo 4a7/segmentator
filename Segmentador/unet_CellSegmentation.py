@@ -24,8 +24,7 @@ from keras.layers import Input, concatenate, Conv2D, MaxPooling2D, Conv2DTranspo
 from keras.optimizers import Adam
 from keras import backend as K
 
-from server import *
-import server
+#import server
 import modelos
 
 #Set channel configuration for backend
@@ -245,14 +244,65 @@ def predict_web(directorio_entrada, directorio_salida, para_url):
         im = Image.fromarray(image_pred.astype(np.uint8))
         im.save(os.path.join(directorio_salida, str(test_id[index]) + '_pred.png'))
         
-        nuevo_archivo = modelos.Archivo(os.path.join(directorio_salida, str(test_id[index]) + '_pred.png'), server.photos.url(para_url+str(test_id[index]) + '_pred.png'))
-        server.db.session.add(nuevo_archivo)
-        server.db.session.commit()
+        nuevo_archivo = modelos.Archivo(os.path.join(directorio_salida, str(test_id[index]) + '_pred.png'), modelos.photos.url(para_url+str(test_id[index]) + '_pred.png'))
+        modelos.db.session.add(nuevo_archivo)
+        modelos.db.session.commit()
         en_la_sesion = modelos.SesionSalida()
-        en_la_sesion.id_sesion = session['id_sesion']
+        en_la_sesion.id_sesion = modelos.session['id_sesion']
         en_la_sesion.id_archivo = nuevo_archivo.id_archivo
-        server.db.session.add(en_la_sesion)
-        server.db.session.commit()
+        modelos.db.session.add(en_la_sesion)
+        modelos.db.session.commit()
+    return True
+
+def predict_web_test(directorio_entrada, directorio_salida):
+    """
+    Funcion que es llamada desde la aplicacion para hacer la segmentacion
+    Recibe el directorio donde se encuentran las imagenes, el directorio donde las debe dejar
+    Se encarga de interactuar con las pruebas unitarias
+    """
+    start_time = time.time()
+    print('-'*30)
+    print('Loading and preprocessing test data...')
+    print('-'*30)
+
+    #Load test data
+    cell_segmentation_data = load_test_data(directorio_entrada+"*.png")
+    
+    #Preprocess and reshape test data
+    x_test = preprocess(cell_segmentation_data[0])
+    test_id = cell_segmentation_data[1]
+
+    print('-'*30)
+    print('Creating and compiling model...')
+    print('-'*30)
+    #Get model
+    model = get_unet()
+
+    print('-'*30)
+    print('Loading saved weights...')
+    print('-'*30)
+    #Load weights
+    model.load_weights(weights_path);
+
+    print('-'*30)
+    print('Predicting masks on test data...')
+    print('-'*30)
+    #Make predictions
+    imgs_mask_predict = model.predict(x_test, verbose=1)
+
+    print('-' * 30)
+    print('Saving predicted masks to files...')
+    np.save('imgs_mask_predict.npy', imgs_mask_predict)
+    print('-' * 30)
+    if not os.path.exists(directorio_salida):
+        os.mkdir(directorio_salida)
+    #Save predictions as images
+    for image_pred,index in zip(imgs_mask_predict,range(x_test.shape[0])):
+        image_pred = image_pred[:, :, 0]
+        image_pred[image_pred > 0.5] *= 255.
+        im = Image.fromarray(image_pred.astype(np.uint8))
+        im.save(os.path.join(directorio_salida, str(test_id[index]) + '_pred.png'))
+    return True
 if __name__ == '__main__':
     predict()
     

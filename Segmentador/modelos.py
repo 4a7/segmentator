@@ -1,8 +1,54 @@
 from datetime import datetime
 from sqlalchemy.sql import func
-from server import *
 from hyperlink import _url
 
+import time
+import datetime
+import sys
+import os
+
+import hashlib
+import flask
+import matplotlib.pyplot as plt
+import numpy as np
+from flask import Flask, render_template, request, send_from_directory, Response, session, url_for, redirect
+from flask_dropzone import Dropzone
+from flask_uploads import UploadSet, configure_uploads, IMAGES, patch_request_class
+from flask_sqlalchemy import SQLAlchemy
+from PIL import Image
+from pathlib import Path
+from werkzeug.utils import secure_filename
+
+
+"""
+TODO
+*Mejorar la forma en la que se llama la segmentacion
+*Crear las tablas para resultados y mejorar la forma en la que se relacionan
+*Guardar el arreglo que se genera tras cada segmentacion en la carpeta de resultados de la sesion
+"""
+
+DOWNLOAD_DIRECTORY="files"
+app = Flask(__name__)
+dropzone = Dropzone(app)
+app.config['SQLALCHEMY_DATABASE_URI'] = 'mysql+pymysql://calidad:ss@localhost:3306/calidad_v1'
+db = SQLAlchemy(app)
+
+#Se configura dropzone
+app.config['DROPZONE_UPLOAD_MULTIPLE'] = True
+app.config['DROPZONE_ALLOWED_FILE_CUSTOM'] = True
+app.config['DROPZONE_ALLOWED_FILE_TYPE'] = 'image/*'
+app.config['DROPZONE_REDIRECT_VIEW'] = 'exito'
+
+#se configura uploads
+app.config['UPLOADED_PHOTOS_DEST'] = os.getcwd() + '/uploads'
+
+#se configura la clave del api
+app.config['SECRET_KEY'] = 'aire'
+#app.secret_key = '22522837b0046ad6edf60333001ca426'
+
+photos = UploadSet('photos', IMAGES)
+configure_uploads(app, photos)
+patch_request_class(app)
 
 class Usuario(db.Model):
     """
