@@ -119,6 +119,15 @@ def segmentar():
     """    
     predict_web(session['dir_imagenes'], session['dir_imagenes_salida'], session['prefijo']+"_salida/")
     return render_template('segmentar.html')
+
+@app.route('/segmentar2')
+def segmentar2():
+    """Se encarga de segmentar las imagenes
+    """    
+    #predict_web(session['dir_imagenes'], session['dir_imagenes_salida'], session['prefijo']+"_salida/")
+    return render_template('segmentar.html')
+
+
 @app.route('/segmentadas')
 def segmentadas():
     """

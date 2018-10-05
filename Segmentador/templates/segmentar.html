@@ -1,16 +1,56 @@
 {% extends "template.html" %}
 
 {% block content %}
-
+<div ng-controller="myCtrl">
 <h1 id="titulo">Segmentador de celulas</h1>
-	<h3>Las imagenes han sido enviadas al modulo de segmentacion</h3>
-<!--  
-	<ul>
-	{% for file_url in file_urls %}
-	    <li><img style="height: 150px" src="{{ file_url }}"></li>
-	{% endfor %}
-	</ul>
--->
-	<p><a href="{{ url_for('segmentadas') }}">Ver las imagenes segmentadas hasta el momento <=</a></p>
-	<p><a href="{{ url_for('index') }}">Volver al inicio <=</a></p>
-{% endblock%}
+	<form  id="elForm" enctype="multipart/form-data"">
+	  <div class="form-group">
+	    <input type="submit" ng-click="submitGuideDetailsForm()" value="Enviar" />
+	  </div>
+	</form>
+</div>
+
+
+
+
+<div id="infoListo" style="visibility: hidden">
+<h3>Segmentacion finalizada</h3>
+<p><a href="{{ url_for('segmentadas') }}">Ver las imagenes segmentadas hasta el momento <=</a></p>
+
+</div>
+<p><a href="{{ url_for('index') }}">Volver al inicio <=</a></p>
+
+<img id="buffer" style="visibility: hidden" src="_uploads/photos/124.gif" alt="Segmentando...">
+
+
+
+
+<script>
+var testApp = angular.module('app', []);
+
+testApp.controller('myCtrl' , function ($scope, $http) {
+	
+	$scope.submitGuideDetailsForm= function() {	 
+	 capaVisibilidad();
+	 $http.get('{{ url_for('segmentar') }}')
+	    .then(function(response) {
+	    	capaInvisibilidad();
+	    	alert("Success");
+	    });
+	   };
+	   
+	  
+    
+});
+
+function capaInvisibilidad() {
+    document.getElementById("buffer").style.visibility = "hidden";
+    document.getElementById("infoListo").style.visibility = "visible";
+}
+
+function capaVisibilidad() {
+    document.getElementById("buffer").style.visibility = "visible";
+    
+}
+</script>
+{% endblock %}
