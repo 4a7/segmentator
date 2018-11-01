@@ -1,0 +1,19 @@
+{% extends "template.html" %}
+
+{% block content %}
+
+<h1 id="titulo">Segmentador de celulas</h1>
+	<h3>Imagenes de la sesion actual</h3>
+	<ul>
+	{% for elemento in listas %}
+	    <li>
+	    	<img style="height: 150px" src="{{ elemento[0].url }}">
+	    	<img style="height: 150px" src="{{ elemento[3].url }}">
+	    	<a href="{{ elemento[1].url }}">Descargar reporte</a> 
+	    	<a href="{{ url_for('medir') }}?id={{ elemento[0].id_archivo }}">Medir precision  </a>
+	    	<p>Tiempo: {{elemento[2].tiempo_ejecucion}} segundos</p>
+	    </li>
+	{% endfor %}
+</ul>
+	<p><a href="{{ url_for('index') }}">Volver al inicio <=</a></p>
+{% endblock%}

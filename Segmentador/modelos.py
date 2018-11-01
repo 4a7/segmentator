@@ -113,7 +113,13 @@ class SesionSalida(db.Model):
                            primary_key=True)
     tiempo_ejecucion = db.Column(db.Integer)
     precision = db.Column(db.Float)
+    id_gt = db.Column(db.Integer, db.ForeignKey('archivo.id_archivo'))
+    id_informe = db.Column(db.Integer, db.ForeignKey('archivo.id_archivo'))
+    
+    id_gt_rel = db.relationship("Archivo", foreign_keys=[id_gt])
+    id_informe_rel = db.relationship("Archivo", foreign_keys=[id_informe])
+    id_archivo_rel = db.relationship("Archivo", foreign_keys=[id_archivo])
     sesion = db.relationship('Sesion',
                              backref=db.backref('sesion2', lazy=True))
-    archivo = db.relationship('Archivo',
-                              backref=db.backref('archivo2', lazy=True))
+    #archivo = db.relationship('Archivo',
+    #                          backref=db.backref('archivo2', lazy=True))

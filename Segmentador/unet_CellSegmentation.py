@@ -16,6 +16,8 @@
 import os
 import time
 import numpy as np
+import sys
+import copy
 
 from PIL import Image
 import glob
@@ -24,20 +26,56 @@ from keras.layers import Input, concatenate
 from keras.layers import Conv2D, MaxPooling2D, Conv2DTranspose
 from keras.optimizers import Adam
 from keras import backend as K
-
+import pandas as pd
+from pandas import DataFrame
+from flask_sqlalchemy import SQLAlchemy
+import numpy as np
+from flask import Flask, render_template, request, send_from_directory
+from flask import Response, session, url_for, redirect
+from flask_dropzone import Dropzone
+from flask_uploads import UploadSet, configure_uploads
+from flask_uploads import IMAGES, patch_request_class
+from PIL import Image
+from pathlib import Path
+import flask
+from scipy.spatial import distance
 # import server
 import modelos
 
+DOWNLOAD_DIRECTORY = "files"
+app = Flask(__name__)
+dropzone = Dropzone(app)
+servidor = 'mysql+pymysql://calidad:ss@localhost:3306/calidad_v1'
+app.config['SQLALCHEMY_DATABASE_URI'] = servidor
+db = SQLAlchemy(app)
+
+# Se configura dropzone
+app.config['DROPZONE_UPLOAD_MULTIPLE'] = True
+app.config['DROPZONE_ALLOWED_FILE_CUSTOM'] = True
+app.config['DROPZONE_ALLOWED_FILE_TYPE'] = 'image/*'
+app.config['DROPZONE_REDIRECT_VIEW'] = 'exito'
+
+# se configura uploads
+app.config['UPLOADED_PHOTOS_DEST'] = os.getcwd() + '/uploads'
+
+# se configura la clave del api
+app.config['SECRET_KEY'] = 'aire'
+
 # Set channel configuration for backend
 K.set_image_data_format('channels_last')
+sys.setrecursionlimit(66000)
 
 # Image size
 img_rows = 256
 img_cols = 256
+# se guardan los codigos de los colores 
+colores_r = [255, 0, 0, 255, 128, 0, 0, 0, 255, 128, 0, 166, 131, 180, 218]
+colores_g = [0, 255, 0, 255, 0, 128, 0, 255, 0, 0, 128, 208, 214, 71, 121]
+colores_b = [0, 0, 255, 0, 0, 0, 128, 255, 255, 128, 0, 92, 167, 209, 144]
 # Dice coeficient parameter
 smooth = 1.
 # Paths declaration
-image_path = 'raw\\test1\\*.png'    # 'raw/hoechst/test/*.png'
+image_path = 'imgtests\\*.png'    # 'raw/hoechst/test/*.png'
 weights_path = 'weights\\pre_0_3_5.h5'
 pred_dir = 'preds\\'
 
@@ -52,6 +90,61 @@ def dice_coef(y_true, y_pred):
     intersection = K.sum(y_true_f * y_pred_f)
     return (2. * intersection + smooth) / (K.sum(y_true_f) + K.sum(y_pred_f)
                                            + smooth)
+
+def dice_manual(archivo, id_gt):
+    print(id_gt)
+    file = db.session.query(
+            modelos.Archivo).filter(modelos.Archivo.id_archivo == id_gt).first()
+    print(file.nombre)
+    archivo.save(archivo.filename)
+    im = Image.open(archivo.filename)
+    im2 = Image.open(file.nombre)
+    im = im.convert('1')
+    im2 = im2.convert('1')
+    im = np.array(im)
+    im2 = np.array(im2)
+    im = im.flatten()
+    im2 = im2.flatten()
+    im = im.tolist()
+    im2 = im2.tolist()
+    val = distance.dice(im, im2)
+    print (val)
+    return str(val)
+
+def fill_alg(imagen_gris, imagen_color, color, i, j, cont, cords_x, cords_y):
+    imagen_color[i, j, 0] = colores_r[color]
+    imagen_color[i, j, 1] = colores_g[color]
+    imagen_color[i, j, 2] = colores_b[color]
+    cont+=1
+    cords_x.append(i)
+    cords_y.append(j)
+    #print(str(i)+" "+str(j)+" "+str(imagen_gris[i,j]))
+    imagen_gris[i,j]=0
+    if i>0:
+        if(imagen_gris[i-1, j]>60):
+            #print(str(i-1)+" "+str(j)+" "+"i-1: "+str(imagen_gris[i-1, j]))
+            imagen_gris[i-1,j]=0
+            cont = fill_alg(imagen_gris, imagen_color, color, i-1, j, cont, cords_x, cords_y)
+    if i<imagen_gris.shape[0]-1:
+        if(imagen_gris[i+1, j]>60):
+            #print(str(i+1)+" "+str(j)+" "+"i+1: "+str(imagen_gris[i+1, j]))
+            imagen_gris[i+1,j]=0
+            cont = fill_alg(imagen_gris, imagen_color, color, i+1, j, cont, cords_x, cords_y)
+    if j > 0:
+        if(imagen_gris[i, j-1]>60):
+            # print(str(i)+" "+str(j-1)+" "+"j-1: "+str(imagen_gris[i, j-1]))
+            imagen_gris[i,j-1]=0
+            cont = fill_alg(imagen_gris, imagen_color, color,  i, j-1, cont, cords_x, cords_y)
+    if j < imagen_gris.shape[1]-1:
+        if(imagen_gris[i, j+1]>60):
+            # print(str(i)+" "+str(j+1)+" "+"j+1: "+str(imagen_gris[i, j+1]))
+            imagen_gris[i,j+1]=0
+            cont = fill_alg(imagen_gris, imagen_color, color, i, j+1, cont, cords_x, cords_y)
+    #im_rgb = Image.fromarray(imagen_color, 'RGB')
+    #im_rgb.save(os.path.join(pred_dir,  '1_pred.png'))
+    return cont
+
+
 
 
 # Loss function
@@ -195,15 +288,39 @@ def predict():
     print('-' * 30)
     print('Saving predicted masks to files...')
     np.save('imgs_mask_predict.npy', imgs_mask_predict)
+    print(imgs_mask_predict.shape)
     print('-' * 30)
     if not os.path.exists(pred_dir):
         os.mkdir(pred_dir)
     # Save predictions as images
     for image_pred, index in zip(imgs_mask_predict, range(x_test.shape[0])):
         image_pred = image_pred[:, :, 0]
+        li = image_pred.shape[0]
+        lj = image_pred.shape[1]
         image_pred[image_pred > 0.5] *= 255.
+        # para colorear la imagen
+        color = 0
+        cont = 0
+        cords_x = []
+        cords_y = []
+        rgb_array = np.zeros((li,lj,3), 'uint8')
+        # image_pred2 = copy.deepcopy(image_pred)
+        image_pred2 = image_pred
+        for i in range(li):
+            print(i)
+            for j in range(lj):
+                if image_pred[i,j]>60:
+                    cont = fill_alg(image_pred2, rgb_array, color, i, j, 0, [], [])
+                    color = (color+1)%(len(colores_r))
+                    x = sum(cords_x) / float(len(cords_x))
+                    y = sum(cords_y) / float(len(cords_y))
+                    rgb_array[int(x), int(y), 0] = 0
+                    rgb_array[int(x), int(y), 1] = 0
+                    rgb_array[int(x), int(y), 2] = 0
         im = Image.fromarray(image_pred.astype(np.uint8))
+        im_rgb = Image.fromarray(rgb_array, 'RGB')
         im.save(os.path.join(pred_dir, str(test_id[index]) + '_pred.png'))
+        im_rgb.save(os.path.join(pred_dir, str(test_id[index]) + '_predcol.png'))
 
 
 def predict_web(directorio_entrada, directorio_salida, para_url):
@@ -241,8 +358,10 @@ def predict_web(directorio_entrada, directorio_salida, para_url):
     print('Predicting masks on test data...')
     print('-'*30)
     # Make predictions
+    start_time_pred = time.time()
     imgs_mask_predict = model.predict(x_test, verbose=1)
-
+    pred_time = time.time()-start_time_pred
+    
     print('-' * 30)
     print('Saving predicted masks to files...')
     np.save('imgs_mask_predict.npy', imgs_mask_predict)
@@ -250,23 +369,83 @@ def predict_web(directorio_entrada, directorio_salida, para_url):
     if not os.path.exists(directorio_salida):
         os.mkdir(directorio_salida)
     # Save predictions as images
+    pred_time=pred_time/x_test.shape[0]
     for image_pred, index in zip(imgs_mask_predict, range(x_test.shape[0])):
+        start_time = time.time()
         image_pred = image_pred[:, :, 0]
+        
+        li = image_pred.shape[0]
+        lj = image_pred.shape[1]
         image_pred[image_pred > 0.5] *= 255.
-        im = Image.fromarray(image_pred.astype(np.uint8))
+        # para colorear la imagen
+        color = 0
+        cont = 0
+        cords_x = []
+        cords_y = []
+        image_pred3 = copy.deepcopy(image_pred)
+        image_pred2 = image_pred
+        rgb_array = np.zeros((li,lj,3), 'uint8')
+        cell_cont = 1
+        Celulas = {'Numero': [], 'Area':[], 'Centroide_x':[], 'Centroide_y':[], 'R':[], 'G': [], 'B': []}
+        for i in range(li):
+            print(i)
+            for j in range(lj):
+                if image_pred[i,j]>60:
+                    color = (color+1)%(len(colores_r))
+                    cords_x = []
+                    cords_y = []
+                    cont = fill_alg(image_pred2, rgb_array, color, i, j, 0, cords_x, cords_y)
+                    print("Area: "+str(cont))
+                    x = sum(cords_x) / float(len(cords_x))
+                    y = sum(cords_y) / float(len(cords_y))
+                    rgb_array[int(x), int(y), 0] = 0
+                    rgb_array[int(x), int(y), 1] = 0
+                    rgb_array[int(x), int(y), 2] = 0
+                    print("Centroide: "+str(x)+" "+str(y))
+                    Celulas['Numero'].append(cell_cont)
+                    Celulas['Area'].append(cont)
+                    Celulas['Centroide_x'].append(x)
+                    Celulas['Centroide_y'].append(y)
+                    Celulas['R'].append(colores_r[color])
+                    Celulas['G'].append(colores_g[color])
+                    Celulas['B'].append(colores_b[color])
+                    cell_cont+=1
+                
+        im = Image.fromarray(image_pred3.astype(np.uint8))
+        im_rgb = Image.fromarray(rgb_array, 'RGB')
+        df = DataFrame(Celulas, columns= ['Numero', 'Area', 'Centroide_x', 'Centroide_y', 'R', 'G', 'B'])
+        export_csv = df.to_csv (os.path.join(directorio_salida, str(test_id[index])
+                             + '.csv'), index = None, header=True)
         im.save(os.path.join(directorio_salida, str(test_id[index])
                              + '_pred.png'))
-
+        im_rgb.save(os.path.join(directorio_salida, str(test_id[index])
+                             + '_predcol.png'))
+        #para mostrar la imagen original hay que quitar el colal final del path
         nuevo_archivo = modelos.Archivo(
             os.path.join(directorio_salida, str(test_id[index]) + '_pred.png'),
             modelos.photos.url(para_url+str(test_id[index]) + '_pred.png'))
+        nuevo_archivo_csv = modelos.Archivo(
+            os.path.join(directorio_salida, str(test_id[index])
+                             + '.csv'),
+            modelos.photos.url(para_url+str(test_id[index]) + '.csv'))
+        nuevo_archivo_rgb = modelos.Archivo(
+            os.path.join(directorio_salida, str(test_id[index]) + '_predcol.png'),
+            modelos.photos.url(para_url+str(test_id[index]) + '_predcol.png'))
         modelos.db.session.add(nuevo_archivo)
+        modelos.db.session.add(nuevo_archivo_csv)
+        modelos.db.session.add(nuevo_archivo_rgb)
         modelos.db.session.commit()
         en_la_sesion = modelos.SesionSalida()
         en_la_sesion.id_sesion = modelos.session['id_sesion']
         en_la_sesion.id_archivo = nuevo_archivo.id_archivo
+        en_la_sesion.id_informe = nuevo_archivo_csv.id_archivo
+        en_la_sesion.id_gt = nuevo_archivo_rgb.id_archivo
+        end_time = (time.time()-start_time)+pred_time
+        en_la_sesion.tiempo_ejecucion = end_time
+        print(end_time)
         modelos.db.session.add(en_la_sesion)
         modelos.db.session.commit()
+        
     return True
 
 

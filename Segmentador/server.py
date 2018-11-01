@@ -4,40 +4,13 @@ import sys
 import os
 
 import hashlib
-import flask
 import matplotlib.pyplot as plt
-import numpy as np
-from flask import Flask, render_template, request, send_from_directory
-from flask import Response, session, url_for, redirect
-from flask_dropzone import Dropzone
-from flask_uploads import UploadSet, configure_uploads
-from flask_uploads import IMAGES, patch_request_class
-from flask_sqlalchemy import SQLAlchemy
-from PIL import Image
-from pathlib import Path
 from werkzeug.utils import secure_filename
 
 from unet_CellSegmentation import *
 
 
-DOWNLOAD_DIRECTORY = "files"
-app = Flask(__name__)
-dropzone = Dropzone(app)
-servidor = 'mysql+pymysql://calidad:ss@localhost:3306/calidad_v1'
-app.config['SQLALCHEMY_DATABASE_URI'] = servidor
-db = SQLAlchemy(app)
 
-# Se configura dropzone
-app.config['DROPZONE_UPLOAD_MULTIPLE'] = True
-app.config['DROPZONE_ALLOWED_FILE_CUSTOM'] = True
-app.config['DROPZONE_ALLOWED_FILE_TYPE'] = 'image/*'
-app.config['DROPZONE_REDIRECT_VIEW'] = 'exito'
-
-# se configura uploads
-app.config['UPLOADED_PHOTOS_DEST'] = os.getcwd() + '/uploads'
-
-# se configura la clave del api
-app.config['SECRET_KEY'] = 'aire'
 # app.secret_key = '22522837b0046ad6edf60333001ca426'
 
 photos = UploadSet('photos', IMAGES)
@@ -103,6 +76,25 @@ def login():
         return render_template("login.html")
 
 
+@app.route("/medir")
+def medir():
+    """Se encarga de realizar la medicion de la precision de la segmentacion
+    """
+    return render_template('medir.html', valor=request.args.get('id'))
+
+@app.route('/uploadmedir', methods=['POST'])
+def uploadmedir():
+    """Se encarga de realizar la medicion de la precision de la segmentacion
+    """
+    if request.method == 'POST':
+        # Get the file from post request
+        f = request.files['file']
+        archivo_id = request.args.get('id')
+        val = dice_manual(f, archivo_id)
+        print(val)
+        return val
+    return None
+
 @app.route('/visualizar')
 def visualizar():
     """
@@ -151,8 +143,22 @@ def segmentadas():
                                   modelos.Archivo.id_archivo).filter(
                                       modelos.SesionSalida.id_sesion ==
                                       id_sesion).all()
-        print(file_urls)
-        return render_template('visualizar.html', file_urls=file_urls)
+        rgb_urls = db.session.query(
+            modelos.Archivo).join(modelos.SesionSalida,
+                                  modelos.SesionSalida.id_gt ==
+                                  modelos.Archivo.id_archivo).filter(
+                                      modelos.SesionSalida.id_sesion ==
+                                      id_sesion).all()
+        informe_urls = db.session.query(
+            modelos.Archivo).join(modelos.SesionSalida,
+                                  modelos.SesionSalida.id_informe ==
+                                  modelos.Archivo.id_archivo).filter(
+                                      modelos.SesionSalida.id_sesion ==
+                                      id_sesion).all()
+        tiempos = db.session.query(
+            modelos.SesionSalida).filter(modelos.SesionSalida.id_sesion == id_sesion)
+        
+        return render_template('visualizar2.html', listas=list(zip(file_urls, informe_urls, tiempos, rgb_urls)))
     else:   # en las pruebas, oara ver que funcione
         return render_template('index.html')
 

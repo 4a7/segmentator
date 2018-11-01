@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en-US">
+<head>
+	<meta name="title" content="Segmentador de celulas">
+	<meta charset="utf-8">
+	<title>Segmentador de celulas</title>
+	<script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.6.9/angular.min.js"></script>
+	<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js">
+	<script type="text/javascript">
+		var app = angular.module('app', []);
+
+		app.config(['$interpolateProvider', function($interpolateProvider) {
+		  $interpolateProvider.startSymbol('{a');
+		  $interpolateProvider.endSymbol('a}');
+		}]);
+	</script> 
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans" rel="stylesheet"> 
+	<link href="{{ url_for('static',filename='styles/estilo.css') }}" rel="stylesheet" type="text/css">
+</head>
+
+<body ng-app="app">
+	<h1 id="titulo">Segmentador de celulas</h1>
+	<div id="center" ng-controller="myCtrl">
+		<h3>Medir precision de la segmentacion</h3>		
+		<form  method="POST" enctype="multipart/form-data"">
+		  <div class="form-group">
+		    <label for="usr">Agregar imagen:</label>
+		    <input type='file' class="form-control" name='file' onchange="angular.element(this).scope().uploadFile(this.files)">
+		    <input type="submit" ng-click="submitGuideDetailsForm()" value="Enviar" />
+		  </div>
+		</form>
+		
+		
+		
+	</div>
+	
+	<div id="infoListo" style="visibility: hidden">
+		<h3 id="dicecoef" >Coeficiente de Dice: </h3>
+	</div>
+	<p><a href="{{ url_for('index') }}">Volver al inicio <=</a></p>
+</body>
+<script>
+var testApp = angular.module('app', []);
+
+testApp.controller('myCtrl' , function ($scope, $http) {
+    $scope.home = "This is the homepage";
+    
+    $scope.uploadFile = function(files) {
+        $scope.file = new FormData();
+        $scope.file.append("file", files[0]);
+    };
+	$scope.submitGuideDetailsForm= function() {
+	 $http.post('/uploadmedir?id={{valor}}', $scope.file, {
+	       headers: {'Content-Type': undefined },
+	       transformRequest: angular.identity
+	      }).then(function successCallback(response){
+              //$scope.response = response;
+              //alert("Coeficiente de Dice: "+response.data);
+              document.getElementById("infoListo").style.visibility = "visible";
+              document.getElementById("dicecoef").innerHTML = "Coeficiente de Dice: "+response.data
+          }, function errorCallback(response){
+        	  alert("error");
+              console.log("Unable to perform get request");
+          });
+	   };
+    
+});
+</script>
+</html> 
+
