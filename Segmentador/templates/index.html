@@ -5,10 +5,10 @@
 	<h1 id="titulo">Segmentador de celulas</h1>
 	<div id="center">
 		<ul>
-			<li><h4><a href="{{ url_for('cargar') }}">Cargar imagenes</a></h4> </li>
-			<li><h4><a href="{{ url_for('visualizar') }}">Visualizar imagenes de la sesion actual</a></h4> </li>
-			<li><h4><a href="{{ url_for('segmentar2') }}">Segmentar</a></h4> </li>
-			<li><h4><a href="{{ url_for('segmentadas') }}">Ver imagenes segmentadas</a></h4> </li>
+			<li><h4><a href="{{ url_for('cargar') }}" id="cargar">Cargar imagenes</a></h4> </li>
+			<li><h4><a href="{{ url_for('visualizar') }}" id="visualizar">Visualizar imagenes de la sesion actual</a></h4> </li>
+			<li><h4><a href="{{ url_for('segmentar2') }}" id="segmentar">Segmentar</a></h4> </li>
+			<li><h4><a href="{{ url_for('segmentadas') }}" id="ver">Ver imagenes segmentadas</a></h4> </li>
 		</ul>
 	</div>
 {% endblock%}

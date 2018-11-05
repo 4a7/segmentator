@@ -38,6 +38,36 @@ class TestUM(unittest.TestCase):
         """
         result = self.app.post('/upload')
         self.assertEqual(result.status_code, 200)
+        
+    def test_medir_status_code(self):
+        """Funcion para probar la respuesta al url: /medir
+        """
+        result = self.app.get('/medir')
+        self.assertEqual(result.status_code, 200)
+        
+    def test_dice(self):
+        """Funcion para probar la funcion que se encarga de calcular
+        el coeficiente de Dice
+        """
+        nom1 = "2_pred.png"
+        nom2 = "2_pred.png"
+        val = dice_manual2(nom1, nom2)
+        self.assertEqual(val, 1.0)
+        
+    def test_segmentadas_status_code(self):
+        """Funcion para probar la respuesta al url: /index
+        """
+        result = self.app.get('/segmentadas')
+        self.assertEqual(result.status_code, 200)
+        
+    def test_colorear(self):
+        """Funcion para probar la funcion que se encarga de calcular
+        el coeficiente de Dice
+        """
+        nom1 = "1_predcol.png"
+        nom2 = "1_predcol.png"
+        val = dice_manual2(nom1, nom2)
+        self.assertEqual(val, 1.0)
 
     def test_cargar_imagen(self):
         """Funcion para probar las funciones de cargar imagenes
@@ -77,12 +107,6 @@ class TestUM(unittest.TestCase):
         """Funcion para probar la respuesta al url: /segmentar2
         """
         result = self.app.get('/segmentar2')
-        self.assertEqual(result.status_code, 200)
-
-    def test_segmentadas_status_code(self):
-        """Funcion para probar la respuesta al url: /segmentadas
-        """
-        result = self.app.get('/segmentadas')
         self.assertEqual(result.status_code, 200)
 
     def test_login(self):

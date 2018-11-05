@@ -111,6 +111,20 @@ def dice_manual(archivo, id_gt):
     print (val)
     return str(val)
 
+def dice_manual2(nom1, nom2):
+    im = Image.open(nom1)
+    im2 = Image.open(nom2)
+    im = im.convert('1')
+    im2 = im2.convert('1')
+    im = np.array(im)
+    im2 = np.array(im2)
+    im = im.flatten()
+    im2 = im2.flatten()
+    im = im.tolist()
+    im2 = im2.tolist()
+    val = distance.dice(im, im2)
+    return val
+
 def fill_alg(imagen_gris, imagen_color, color, i, j, cont, cords_x, cords_y):
     imagen_color[i, j, 0] = colores_r[color]
     imagen_color[i, j, 1] = colores_g[color]

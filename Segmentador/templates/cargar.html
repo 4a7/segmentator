@@ -27,9 +27,9 @@
 		{{ dropzone.create(action_view='cargador') }}
 		
 		
-		<form method="POST" enctype="multipart/form-data" action="/upload">
-		  <input type="file" name="file[]" multiple="">
-		  <input type="submit" value="add">
+		<form method="POST" enctype="multipart/form-data" action="/cargador">
+		  <input id="archivo" type="file" name="file[]" multiple="">
+		  <input id="enviar" type="submit" value="add">
 		</form>
 		
 		
