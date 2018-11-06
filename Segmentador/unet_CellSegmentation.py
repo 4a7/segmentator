@@ -19,7 +19,7 @@ import numpy as np
 import sys
 import copy
 
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import glob
 from keras.models import Model
 from keras.layers import Input, concatenate
@@ -427,6 +427,18 @@ def predict_web(directorio_entrada, directorio_salida, para_url):
                 
         im = Image.fromarray(image_pred3.astype(np.uint8))
         im_rgb = Image.fromarray(rgb_array, 'RGB')
+        
+        #txt = Image.new('RGB', im_rgb.size, (255,255,255))
+        fnt = ImageFont.truetype('arial.ttf', 16)
+        #d = ImageDraw.Draw(txt)
+        draw = ImageDraw.Draw(im_rgb)
+        for i in range(len(Celulas['Numero'])):
+            puntox = Celulas['Centroide_x'][i]
+            puntoy = Celulas['Centroide_y'][i]
+            numero = Celulas['Numero'][i]
+            draw.text((puntoy, puntox), str(numero), "rgb(255,255,255)", font=fnt)
+        
+        
         df = DataFrame(Celulas, columns= ['Numero', 'Area', 'Centroide_x', 'Centroide_y', 'R', 'G', 'B'])
         export_csv = df.to_csv (os.path.join(directorio_salida, str(test_id[index])
                              + '.csv'), index = None, header=True)
