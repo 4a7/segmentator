@@ -52,7 +52,7 @@ class TestUM(unittest.TestCase):
         nom1 = "2_pred.png"
         nom2 = "2_pred.png"
         val = dice_manual2(nom1, nom2)
-        self.assertEqual(val, 1.0)
+        self.assertEqual(val, 0.0)
         
     def test_segmentadas_status_code(self):
         """Funcion para probar la respuesta al url: /index
@@ -67,7 +67,7 @@ class TestUM(unittest.TestCase):
         nom1 = "1_predcol.png"
         nom2 = "1_predcol.png"
         val = dice_manual2(nom1, nom2)
-        self.assertEqual(val, 1.0)
+        self.assertEqual(val, 0.0)
 
     def test_cargar_imagen(self):
         """Funcion para probar las funciones de cargar imagenes
